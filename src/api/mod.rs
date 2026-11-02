@@ -197,6 +197,10 @@ pub struct PeripheralProperties {
     pub tx_power_level: Option<i16>,
     /// The most recent Received Signal Strength Indicator for the device
     pub rssi: Option<i16>,
+    /// Whether the advertisement said the peripheral accepts connections. `None` where the
+    /// platform does not report it.
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub connectable: Option<bool>,
     /// Advertisement data specific to the device manufacturer. The keys of this map are
     /// 'manufacturer IDs', while the values are arbitrary data.
     pub manufacturer_data: HashMap<u16, Vec<u8>>,
@@ -699,5 +703,32 @@ mod serde_tests {
 
         let properties: PeripheralProperties = serde_json::from_value(value).unwrap();
         assert_eq!(properties.appearance, None);
+    }
+
+    #[test]
+    fn peripheral_properties_round_trip_connectable() {
+        let properties = PeripheralProperties {
+            connectable: Some(true),
+            ..PeripheralProperties::default()
+        };
+
+        let value = serde_json::to_value(&properties).unwrap();
+        assert_eq!(value["connectable"], true);
+
+        let decoded: PeripheralProperties = serde_json::from_value(value).unwrap();
+        assert_eq!(decoded.connectable, Some(true));
+    }
+
+    #[test]
+    fn peripheral_properties_missing_connectable_defaults_to_none() {
+        let mut value = serde_json::to_value(PeripheralProperties::default()).unwrap();
+        value
+            .as_object_mut()
+            .unwrap()
+            .remove("connectable")
+            .unwrap();
+
+        let properties: PeripheralProperties = serde_json::from_value(value).unwrap();
+        assert_eq!(properties.connectable, None);
     }
 }

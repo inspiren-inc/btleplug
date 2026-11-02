@@ -228,6 +228,7 @@ pub enum PeripheralEventInternal {
     Services(Vec<Uuid>, i16),
     ServicesModified,
     TxPowerLevel(i16),
+    Connectable(bool),
     RssiRead(i16),
 }
 
@@ -1610,6 +1611,17 @@ impl CoreBluetoothInternal {
         }
     }
 
+    async fn on_connectable(&mut self, peripheral_uuid: Uuid, connectable: bool) {
+        if let Some(peripheral) = self.peripherals.get_mut(&peripheral_uuid)
+            && let Err(e) = peripheral
+                .event_sender
+                .send(PeripheralEventInternal::Connectable(connectable))
+                .await
+        {
+            error!("Error sending connectable event: {}", e);
+        }
+    }
+
     async fn on_descriptor_read(
         &mut self,
         peripheral_uuid: Uuid,
@@ -1851,6 +1863,9 @@ impl CoreBluetoothInternal {
                     } => self.on_descriptor_written(peripheral_uuid, service_uuid, characteristic_uuid, descriptor_uuid, error),
                     CentralDelegateEvent::TxPowerLevel{peripheral_uuid, tx_power_level} => {
                         self.on_tx_power_level(peripheral_uuid, tx_power_level).await
+                    },
+                    CentralDelegateEvent::Connectable{peripheral_uuid, connectable} => {
+                        self.on_connectable(peripheral_uuid, connectable).await
                     },
                     CentralDelegateEvent::DidReadRssi{peripheral_uuid, rssi, error} => {
                         self.on_read_rssi(peripheral_uuid, rssi, error).await

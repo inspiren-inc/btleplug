@@ -637,6 +637,7 @@ impl<'local> JScanResult<'local> {
                 service_data,
                 services,
                 rssi,
+                connectable: None,
                 class: None,
             })
         };

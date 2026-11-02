@@ -1,3 +1,19 @@
+# Unreleased
+
+## Features
+
+- Add `connectable` to `PeripheralProperties`, reporting whether the most recent
+  advertisement said the peripheral accepts connections. Populated from
+  `CBAdvertisementDataIsConnectable` on macOS/iOS and from
+  `BluetoothLEAdvertisementReceivedEventArgs.IsConnectable` on Windows 10 1803
+  or newer. BlueZ and Android do not expose this flag, so it remains `None`
+  there.
+
+## Breaking Changes
+
+- **`PeripheralProperties` struct literals**: The new `connectable` field must
+  be initialized by callers that construct this public struct directly.
+
 # 0.13.5 (2026-10-10)
 
 ## Bugfixes

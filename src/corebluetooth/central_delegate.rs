@@ -24,11 +24,11 @@ use log::{error, trace, warn};
 use objc2::runtime::{AnyObject, ProtocolObject};
 use objc2::{AnyThread, ClassType, DefinedClass, define_class, msg_send, rc::Retained};
 use objc2_core_bluetooth::{
-    CBAdvertisementDataLocalNameKey, CBAdvertisementDataManufacturerDataKey,
-    CBAdvertisementDataServiceDataKey, CBAdvertisementDataServiceUUIDsKey,
-    CBAdvertisementDataTxPowerLevelKey, CBCentralManager, CBCentralManagerDelegate,
-    CBCharacteristic, CBDescriptor, CBManagerState, CBPeripheral, CBPeripheralDelegate, CBService,
-    CBUUID,
+    CBAdvertisementDataIsConnectable, CBAdvertisementDataLocalNameKey,
+    CBAdvertisementDataManufacturerDataKey, CBAdvertisementDataServiceDataKey,
+    CBAdvertisementDataServiceUUIDsKey, CBAdvertisementDataTxPowerLevelKey, CBCentralManager,
+    CBCentralManagerDelegate, CBCharacteristic, CBDescriptor, CBManagerState, CBPeripheral,
+    CBPeripheralDelegate, CBService, CBUUID,
 };
 use objc2_foundation::{
     NSArray, NSData, NSDictionary, NSError, NSNumber, NSObject, NSObjectProtocol, NSString,
@@ -140,6 +140,10 @@ pub enum CentralDelegateEvent {
     TxPowerLevel {
         peripheral_uuid: Uuid,
         tx_power_level: i16,
+    },
+    Connectable {
+        peripheral_uuid: Uuid,
+        connectable: bool,
     },
     DidReadRssi {
         peripheral_uuid: Uuid,
@@ -332,6 +336,14 @@ impl Debug for CentralDelegateEvent {
                 .field("peripheral_uuid", peripheral_uuid)
                 .field("tx_power_level", tx_power_level)
                 .finish(),
+            CentralDelegateEvent::Connectable {
+                peripheral_uuid,
+                connectable,
+            } => f
+                .debug_struct("Connectable")
+                .field("peripheral_uuid", peripheral_uuid)
+                .field("connectable", connectable)
+                .finish(),
             CentralDelegateEvent::DidReadRssi {
                 peripheral_uuid,
                 rssi,
@@ -512,6 +524,19 @@ define_class!(
                 self.send_event(CentralDelegateEvent::TxPowerLevel {
                     peripheral_uuid,
                     tx_power_level,
+                });
+            }
+
+            let connectable = adv_data
+                .objectForKey(unsafe { CBAdvertisementDataIsConnectable })
+                .map(|val| {
+                    val.downcast::<NSNumber>().unwrap().as_bool()
+                });
+
+            if let Some(connectable) = connectable {
+                self.send_event(CentralDelegateEvent::Connectable {
+                    peripheral_uuid,
+                    connectable,
                 });
             }
         }

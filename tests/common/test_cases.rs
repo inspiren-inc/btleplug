@@ -1440,6 +1440,17 @@ pub async fn test_properties_contain_peripheral_info() {
         Some(gatt_uuids::TEST_APPEARANCE),
         "Properties should contain the advertised GAP Appearance"
     );
+    #[cfg(any(target_vendor = "apple", target_os = "windows"))]
+    assert_eq!(
+        props.connectable,
+        Some(true),
+        "The test peripheral advertises as connectable"
+    );
+    #[cfg(not(any(target_vendor = "apple", target_os = "windows")))]
+    assert_eq!(
+        props.connectable, None,
+        "BlueZ and Android do not expose the connectable flag"
+    );
     peripheral.disconnect().await.unwrap();
 }
 

@@ -103,6 +103,7 @@ impl Peripheral {
             appearance: None,
             tx_power_level: None,
             rssi: None,
+            connectable: None,
             manufacturer_data: HashMap::new(),
             service_data: HashMap::new(),
             services: Vec::new(),
@@ -179,6 +180,10 @@ impl Peripheral {
                     Some(PeripheralEventInternal::TxPowerLevel(tx_power_level)) => {
                         let mut properties = shared.properties.lock().unwrap();
                         properties.tx_power_level = Some(tx_power_level);
+                    }
+                    Some(PeripheralEventInternal::Connectable(connectable)) => {
+                        let mut properties = shared.properties.lock().unwrap();
+                        properties.connectable = Some(connectable);
                     }
                     Some(PeripheralEventInternal::RssiRead(rssi)) => {
                         shared.emit_event(CentralEvent::RssiUpdate {

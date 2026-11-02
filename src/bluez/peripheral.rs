@@ -157,6 +157,7 @@ impl api::Peripheral for Peripheral {
             appearance: device_info.appearance,
             tx_power_level: device_info.tx_power,
             rssi: device_info.rssi,
+            connectable: None,
             manufacturer_data: device_info.manufacturer_data,
             service_data: device_info.service_data,
             services: device_info.services,

@@ -91,6 +91,7 @@ struct Shared {
     appearance: RwLock<Option<u16>>,
     last_tx_power_level: RwLock<Option<i16>>, // XXX: would be nice to avoid lock here!
     last_rssi: RwLock<Option<i16>>,           // XXX: would be nice to avoid lock here!
+    connectable: RwLock<Option<bool>>,
     latest_manufacturer_data: RwLock<HashMap<u16, Vec<u8>>>,
     latest_service_data: RwLock<HashMap<Uuid, Vec<u8>>>,
     services: RwLock<HashSet<Uuid>>,
@@ -133,6 +134,7 @@ impl Peripheral {
                 appearance: RwLock::new(None),
                 last_tx_power_level: RwLock::new(None),
                 last_rssi: RwLock::new(None),
+                connectable: RwLock::new(None),
                 latest_manufacturer_data: RwLock::new(HashMap::new()),
                 latest_service_data: RwLock::new(HashMap::new()),
                 services: RwLock::new(HashSet::new()),
@@ -152,6 +154,7 @@ impl Peripheral {
             appearance: *self.shared.appearance.read().unwrap(),
             tx_power_level: *self.shared.last_tx_power_level.read().unwrap(),
             rssi: *self.shared.last_rssi.read().unwrap(),
+            connectable: *self.shared.connectable.read().unwrap(),
             manufacturer_data: self.shared.latest_manufacturer_data.read().unwrap().clone(),
             service_data: self.shared.latest_service_data.read().unwrap().clone(),
             services: self
@@ -337,6 +340,16 @@ impl Peripheral {
                 let mut tx_power_level_guard = self.shared.last_tx_power_level.write().unwrap();
                 *tx_power_level_guard = Some(tx);
             }
+        }
+        // A scan response carries no connectability of its own and would report false, so only
+        // the advertising PDU updates the flag. IsConnectable needs Windows 10 1803 or newer;
+        // on older systems the call fails and the flag stays unset.
+        if !matches!(
+            args.AdvertisementType(),
+            Ok(BluetoothLEAdvertisementType::ScanResponse)
+        ) && let Ok(connectable) = args.IsConnectable()
+        {
+            *self.shared.connectable.write().unwrap() = Some(connectable);
         }
         if let Ok(rssi) = args.RawSignalStrengthInDBm() {
             let mut rssi_guard = self.shared.last_rssi.write().unwrap();
